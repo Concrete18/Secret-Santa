@@ -1,16 +1,22 @@
 from pathlib import Path
 import random, json
 
-import smtplib
+import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
 def full_name(pair):
+    """
+    ph
+    """
     return f"{pair['first']} {pair['last']}"
 
 
 def valid_pair(person1, person2):
+    """
+    ph
+    """
     # invalid pair
     if person1["last"] == person2["last"]:
         return False
@@ -24,6 +30,9 @@ def valid_pair(person1, person2):
 
 
 def validate_pairs(pairs):
+    """
+    ph
+    """
     unique_giftee = []
     for pair in pairs:
         gifter, giftee = pair[0], pair[1]
@@ -37,6 +46,9 @@ def validate_pairs(pairs):
 
 
 def create_pair(gifter, possible_giftees):
+    """
+    ph
+    """
     for giftee in possible_giftees:
         if not valid_pair(giftee, gifter):
             continue
@@ -47,6 +59,9 @@ def create_pair(gifter, possible_giftees):
 
 
 def create_pairs(participants: list[dict]) -> list[tuple]:
+    """
+    ph
+    """
     possible_giftees = participants.copy()
     random.shuffle(possible_giftees)
 
@@ -62,45 +77,51 @@ def create_pairs(participants: list[dict]) -> list[tuple]:
     return pairs
 
 
-def send_secret_santa_emails(pairs):
-    # Email configuration (replace with your SMTP server details)
-    smtpserver = "smtp.gmail.com"
-    smtp_port = 465
-    smtp_username = "your_username"
-    smtp_password = "your_password"
-    sender_email = "your_email@example.com"
+def send_email(config, subject, body, to_email):
+    """
+    ph
+    """
+    # Gmail account details
+    gmail_user = config["gmail_username"]
+    gmail_password = config["gmail_password"]
 
-    # Loop through participants and send emails
+    # Create the MIMEText and MIMEMultipart objects
+    message = MIMEMultipart()
+    message["From"] = gmail_user
+    message["To"] = to_email
+    message["Subject"] = subject
+
+    message.attach(MIMEText(body, "plain"))
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        server.login(gmail_user, gmail_password)
+        server.sendmail(gmail_user, to_email, message.as_string())
+
+
+def send_secret_santa_emails(config, pairs, permutations="Unknown"):
+    """
+    ph
+    """
     print("\nPairs:")
     for pair in pairs:
-        recipient_email = pair[0]["email"]
-        subject = "Secret Santa Match"
-
         gifter = pair[0]
         giftee = pair[1]
-        print(
-            f"{gifter['first']} {gifter['last']} - {giftee['first']} {giftee['last']}"
-        )
 
-        # recipient_email = participant["email"]
-        # subject = "Secret Santa Match"
-        # body = f"Hello {gifter},\n\nYour Secret Santa match is: {giftee}."
+        # debug
+        gifter_name = f"{gifter['first']} {gifter['last']}"
+        giftee_name = f"{giftee['first']} {giftee['last']}"
+        print(f"{gifter_name} - {giftee_name}")
 
-        # # Create MIMEText and MIMEMultipart objects for email content
-        # msg = MIMEMultipart()
-        # msg.attach(MIMEText(body, "plain"))
-        # msg["Subject"] = subject
-        # msg["From"] = sender_email
-        # msg["To"] = recipient_email
-
-        # # Connect to the SMTP server and send the email
-        # with smtplib.SMTP(smtp_server, smtp_port) as server:
-        #     server.starttls()
-        #     server.login(smtp_username, smtp_password)
-        #     server.sendmail(sender_email, recipient_email, msg.as_string())
+        recipient_email = gifter["email"]
+        email_subject = "Secret Santa Match"
+        email_body = f"Hello {full_name(gifter)},\n\nYour Secret Santa match is: {full_name(giftee)}.\n\nThis was one of {permutations:,} possiple pairings for everyone."
+        send_email(config, email_subject, email_body, recipient_email)
 
 
-def find_total_variations(participants):
+def get_permutations(participants):
+    """
+    ph
+    """
     combos = []
     for gifter in participants:
         valid_pairs = 0
@@ -112,38 +133,45 @@ def find_total_variations(participants):
     permutations = 1
     for n in combos:
         permutations = permutations * n
-    msg = f"There are {permutations:,} permutations"
-    print(msg)
-    response = input("\nDo you want to notify everyone who their secret santa is?\n")
-    if not response.lower() in ["yes", "y"]:
-        input("\nCanceled")
+    return permutations
 
 
 def validate_last_giftees(participants):
+    """
+    ph
+    """
     full_names = [full_name(contact) for contact in participants]
-    for participant in participants:
+    for participant in [full_name(contact) for contact in participants]:
         if participant["last_giftee"] not in full_names:
             msg = f"Failed match {participant['last_giftee']} with anyone in participants list."
             input(msg)
+            exit()
 
 
 def main():
-    config = Path("contacts.json")
+    # get config data
+    config = Path("config.json")
     with open(config) as file:
-        participants = json.load(file)
+        data = json.load(file)
+        config = data["config"]
+        participants = data["contacts"]
 
     print("Secret Santa Pair Picker")
 
     validate_last_giftees(participants)
 
-    # find_total_variations(participants)
-
-    for _ in range(15_000):
-        pairs = create_pairs(participants)
+    permutations = get_permutations(participants)
+    msg = f"There are {permutations:,} permutations"
+    print(msg)
 
     pairs = create_pairs(participants)
 
-    send_secret_santa_emails(pairs)
+    response = input("\nDo you want to notify everyone who their secret santa is?\n")
+    if not response.lower() in ["yes", "y"]:
+        input("\nCanceled")
+        exit()
+
+    send_secret_santa_emails(config, pairs, permutations)
 
 
 if __name__ == "__main__":
