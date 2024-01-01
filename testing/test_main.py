@@ -1,41 +1,34 @@
-# from unittest.mock import patch, call
 import unittest
 
 # classes
-from main import *
+from main import SecretSanta
 
-participants = [
-    {
-        "first": "John",
-        "last": "Doe",
-        "email": "fake1@gmail.com",
-        "last_giftee": "Linda German",
-    },
-    {
-        "first": "Brenda",
-        "last": "Doe",
-        "email": "fake2@gmail.com",
-        "last_giftee": "Bill German",
-    },
-    {
-        "first": "Linda",
-        "last": "German",
-        "email": "fake3@gmail.com",
-        "last_giftee": "Brenda Doe",
-    },
-    {
-        "first": "Bill",
-        "last": "German",
-        "email": "fake4@gmail.com",
-        "last_giftee": "John Doe",
-    },
-]
+
+class FullName(unittest.TestCase):
+    """
+    Tests `full_name` function.
+    """
+
+    def setUp(self):
+        self.ss = SecretSanta(debug=True)
+
+    def test_full_name(self):
+        contact = {
+            "first": "John",
+            "last": "Doe",
+            "email": "fake1@gmail.com",
+            "last_giftee": "Linda German",
+        }
+        self.assertEqual(self.ss.full_name(contact), "John Doe", "Should be John Doe")
 
 
 class ValidPair(unittest.TestCase):
     """
     Tests `valid_pair` function.
     """
+
+    def setUp(self):
+        self.ss = SecretSanta(debug=True)
 
     def test_valid(self):
         person1 = {
@@ -50,7 +43,7 @@ class ValidPair(unittest.TestCase):
             "email": "fake4@gmail.com",
             "last_giftee": "John Doe",
         }
-        self.assertTrue(valid_pair(person1, person2), "Should be True")
+        self.assertTrue(self.ss.valid_pair(person1, person2), "Should be True")
 
     def test_invalid(self):
         person1 = {
@@ -65,13 +58,16 @@ class ValidPair(unittest.TestCase):
             "email": "fake3@gmail.com",
             "last_giftee": "Brenda Doe",
         }
-        self.assertFalse(valid_pair(person1, person2), "Should be False")
+        self.assertFalse(self.ss.valid_pair(person1, person2), "Should be False")
 
 
 class ValidatePairs(unittest.TestCase):
     """
     Tests `validate_pairs` function.
     """
+
+    def setUp(self):
+        self.ss = SecretSanta(debug=True)
 
     def test_valid(self):
         pairs = [
@@ -104,7 +100,7 @@ class ValidatePairs(unittest.TestCase):
                 },
             ),
         ]
-        self.assertTrue(validate_pairs(pairs), "Should be True")
+        self.assertTrue(self.ss.validate_pairs(pairs), "Should be True")
 
     def test_invalid(self):
         pairs = [
@@ -137,7 +133,52 @@ class ValidatePairs(unittest.TestCase):
                 },
             ),
         ]
-        self.assertFalse(validate_pairs(pairs), "Should be False")
+        self.assertFalse(self.ss.validate_pairs(pairs), "Should be False")
+
+
+class GetPermutations(unittest.TestCase):
+    """
+    Tests `get_permutations` function.
+    """
+
+    def setUp(self):
+        self.ss = SecretSanta(debug=True)
+
+    def test_permutations(self):
+        participants = [
+            {
+                "first": "John",
+                "last": "Doe",
+                "last_giftee": "Linda German",
+            },
+            {
+                "first": "Jane",
+                "last": "Doe",
+                "last_giftee": "Bill German",
+            },
+            {
+                "first": "Linda",
+                "last": "German",
+                "last_giftee": "Jane Doe",
+            },
+            {
+                "first": "Bill",
+                "last": "German",
+                "last_giftee": "John Doe",
+            },
+            {
+                "first": "Ryan",
+                "last": "Bickman",
+                "last_giftee": "",
+            },
+            {
+                "first": "Ellie",
+                "last": "Bickman",
+                "last_giftee": "",
+            },
+        ]
+        permutations = self.ss.get_permutations(participants)
+        self.assertEqual(permutations, 1296, "Should have 1296 permutations")
 
 
 if __name__ == "__main__":
