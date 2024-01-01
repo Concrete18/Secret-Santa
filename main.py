@@ -17,11 +17,14 @@ def valid_pair(person1, person2):
     """
     ph
     """
-    # invalid pair
+    # same last name
     if person1["last"] == person2["last"]:
         return False
     # previous giftee
-    if person1["last_giftee"] == full_name(person2):
+    if (
+        person2["first"] in person1["last_giftee"]
+        and person2["last"] in person1["last_giftee"]
+    ):
         return False
     # same person
     if person1 == person2:
@@ -36,7 +39,7 @@ def validate_pairs(pairs):
     unique_giftee = []
     for pair in pairs:
         gifter, giftee = pair[0], pair[1]
-        if valid_pair(gifter, gifter):
+        if not valid_pair(gifter, giftee):
             return False
         giftee_full_name = full_name(giftee)
         if giftee_full_name in unique_giftee:
@@ -62,17 +65,18 @@ def create_pairs(participants: list[dict]) -> list[tuple]:
     """
     ph
     """
-    possible_giftees = participants.copy()
-    random.shuffle(possible_giftees)
+    while True:
+        possible_giftees = participants.copy()
+        random.shuffle(possible_giftees)
 
-    pairs = []
-    for gifter in participants:
-        new_pair = create_pair(gifter, possible_giftees)
-        if new_pair:
-            pairs.append(new_pair)
+        pairs = []
+        for gifter in participants:
+            new_pair = create_pair(gifter, possible_giftees)
+            if new_pair:
+                pairs.append(new_pair)
 
-    if not validate_pairs(pairs) or len(pairs) != len(participants):
-        pairs = create_pairs(participants)
+        if validate_pairs(pairs) and len(pairs) == len(participants):
+            break
 
     return pairs
 
@@ -98,7 +102,7 @@ def send_email(config, subject, body, to_email):
         server.sendmail(gmail_user, to_email, message.as_string())
 
 
-def send_secret_santa_emails(config, pairs, permutations="Unknown"):
+def send_secret_santa_emails(config, pairs, permutations="Unknown", debug=False):
     """
     ph
     """
@@ -107,10 +111,13 @@ def send_secret_santa_emails(config, pairs, permutations="Unknown"):
         gifter = pair[0]
         giftee = pair[1]
 
-        # debug
         gifter_name = f"{gifter['first']} {gifter['last']}"
         giftee_name = f"{giftee['first']} {giftee['last']}"
-        print(f"{gifter_name} - {giftee_name}")
+        if debug:
+            print(f"{gifter_name} - {giftee_name} != {gifter['last_giftee']}")
+            continue
+
+        print(f"sending Email to {gifter_name}")
 
         recipient_email = gifter["email"]
         email_subject = "Secret Santa Match"
@@ -141,14 +148,14 @@ def validate_last_giftees(participants):
     ph
     """
     full_names = [full_name(contact) for contact in participants]
-    for participant in [full_name(contact) for contact in participants]:
+    for participant in participants:
         if participant["last_giftee"] not in full_names:
             msg = f"Failed match {participant['last_giftee']} with anyone in participants list."
             input(msg)
             exit()
 
 
-def main():
+def main(debug=False):
     # get config data
     config = Path("config.json")
     with open(config) as file:
@@ -156,23 +163,26 @@ def main():
         config = data["config"]
         participants = data["contacts"]
 
-    print("Secret Santa Pair Picker")
+    print("Secret Santa Pair Picker\n")
 
     validate_last_giftees(participants)
 
     permutations = get_permutations(participants)
-    msg = f"There are {permutations:,} permutations"
+    msg = f"There are {permutations:,} permutations."
     print(msg)
 
     pairs = create_pairs(participants)
 
-    response = input("\nDo you want to notify everyone who their secret santa is?\n")
-    if not response.lower() in ["yes", "y"]:
-        input("\nCanceled")
-        exit()
+    if not debug:
+        response = input(
+            "\nDo you want to notify everyone who their secret santa is?\n"
+        )
+        if not response.lower() in ["yes", "y"]:
+            input("\nCanceled")
+            exit()
 
-    send_secret_santa_emails(config, pairs, permutations)
+    send_secret_santa_emails(config, pairs, permutations, debug)
 
 
 if __name__ == "__main__":
-    main()
+    main(debug=True)
