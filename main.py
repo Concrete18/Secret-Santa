@@ -2,6 +2,9 @@ from pathlib import Path
 import datetime as dt
 import random, json
 
+from rich.console import Console
+from rich.theme import Theme
+
 from classes.email import Email
 
 
@@ -16,8 +19,18 @@ class SecretSanta(Email):
     # Gmail account details
     gmail_username = gmail["username"]
     gmail_password = gmail["password"]
+    test_email = gmail["test_email"]
 
     Email = Email(gmail_username, gmail_password)
+
+    # rich console
+    custom_theme = Theme(
+        {
+            "prim": "bold deep_sky_blue1",
+            "sec": "bold pale_turquoise1",
+        }
+    )
+    console = Console(theme=custom_theme)
 
     def __init__(self, debug=False) -> None:
         """
@@ -77,7 +90,9 @@ class SecretSanta(Email):
             return pair
         return {}
 
-    def create_pairs(self, participants: list[dict]) -> list[tuple]:
+    def create_pairs(
+        self, participants: list[dict], attempt_limit=1_000
+    ) -> list[tuple]:
         """
         ph
         """
@@ -94,29 +109,90 @@ class SecretSanta(Email):
             if self.validate_pairs(pairs) and len(pairs) == len(participants):
                 break
 
+            attempt_limit -= 1
+            if attempt_limit == 0:
+                print("Failed to find a full set of valid pairs.")
+                print("More or less particapants may be required.")
+                exit()
         return pairs
 
-    def send_secret_santa_emails(self, pairs, permutations="Unknown"):
+    def create_email_body(self, gifter, giftee, perms):
         """
         ph
         """
-        print("\nPairs:")
+        gifter_name = self.full_name(gifter)
+        giftee_name = self.full_name(giftee)
+        email_body = f"<h3>Hello {gifter_name},</h3>"
+        email_body += f"\n\nYour Secret Santa match is:<br>\n{giftee_name}"
+
+        # optional wishlist
+        if "wishlist" in giftee.keys():
+            wishlist = giftee["wishlist"]
+            if wishlist:
+                email_body += (
+                    f"\n\n<br><br><a href='{wishlist}'>{giftee_name}'s Wishlist</a>\n"
+                )
+
+        # optional notes
+        if "notes" in giftee.keys():
+            notes = giftee["notes"]
+            if notes:
+                email_body += (
+                    f"\n<br><br>Your giftee left the following notes:\n<br>{notes}"
+                )
+
+        # optional permutations info
+        if perms:
+            email_body += (
+                f"\n\n<br><br>This was one of {perms:,} pairings for everyone."
+            )
+
+        email_body += f"\n\n<br><br>Merry Christmas!"
+
+        return email_body
+
+    def send_secret_santa_emails(self, pairs, perms=None):
+        """
+        ph
+        """
+        if self.debug:
+            print("\nPairs:")
         for pair in pairs:
             gifter = pair[0]
             giftee = pair[1]
-
             gifter_name = self.full_name(gifter)
             giftee_name = self.full_name(giftee)
+
             if self.debug:
-                print(f"{gifter_name} - {giftee_name} != {gifter['last_giftee']}")
-                continue
+                self.console.print(f"\n[sec]{gifter_name}[/] to [sec]{giftee_name}[/]")
+                self.console.print(f"Last Giftee: [sec]{gifter['last_giftee']}[/]")
 
-            print(f"sending Email to {gifter_name}")
+            # email setup creation
+            email_body = self.create_email_body(gifter, giftee, perms)
 
-            recipient_email = gifter["email"]
+            # email body debug output
+            email_body_test = ""
+            if self.debug:
+                if "Michael" in giftee_name:
+                    email_body_test = email_body
+                    self.Email.send_email(email_subject, email_body, recipient_email)
+
+            # recipient_email = gifter["email"]
+            recipient_email = self.test_email
+
             email_subject = "Secret Santa Match"
-            email_body = f"Hello {gifter_name},\n\nYour Secret Santa match is: {giftee_name}.\n\nThis was one of {permutations:,} possiple pairings for everyone."
-            self.Email.send_email(email_subject, email_body, recipient_email)
+
+            if not self.debug:
+                self.console.print(f"Sending Email to [sec]{gifter_name}[/]")
+                self.Email.send_email(email_subject, email_body, recipient_email)
+
+        if self.debug and email_body_test:
+            print("\nStart of Email")
+            print("---------------")
+            print(email_body_test)
+            print("---------------")
+            print("End of Email")
+
         print("\nProcess Complete")
 
     def get_permutations(self, participants):
@@ -128,10 +204,8 @@ class SecretSanta(Email):
             valid_pairs = 0
             for giftee in participants:
                 if self.valid_pair(giftee, gifter):
-                    print(giftee, gifter)
                     valid_pairs += 1
             combos.append(valid_pairs)
-        print(combos)
         # find permutations
         permutations = 1
         for n in combos:
@@ -153,7 +227,9 @@ class SecretSanta(Email):
         """
         ph
         """
-        print(f"Secret Santa Pair Picker | {dt.datetime.now().year}\n")
+        self.console.print(
+            f"[prim]Secret Santa Pair Picker[/] | [sec]{dt.datetime.now().year}[/]\n"
+        )
 
         self.validate_last_giftees(self.participants)
 
@@ -170,6 +246,7 @@ class SecretSanta(Email):
                 exit()
 
         self.send_secret_santa_emails(pairs, permutations)
+        input()
 
 
 if __name__ == "__main__":

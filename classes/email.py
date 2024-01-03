@@ -20,7 +20,9 @@ class Email:
         message["To"] = to_email
         message["Subject"] = subject
 
-        message.attach(MIMEText(body, "plain"))
+        message.attach(MIMEText(body, "html"))
+
+        # message.attach(MIMEText(body, "plain"))
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
             server.login(self.gmail_username, self.gmail_password)
