@@ -175,17 +175,27 @@ class SecretSanta(Email):
             if self.debug:
                 if "Michael" in giftee_name:
                     email_body_test = email_body
-                    self.Email.send_email(email_subject, email_body, recipient_email)
+                    self.Email.send_email(
+                        subject=email_subject,
+                        body=email_body,
+                        to_email=recipient_email,
+                        text="html",
+                    )
 
             # recipient_email = gifter["email"]
             recipient_email = self.test_email
 
             email_subject = "Secret Santa Match"
 
+            # non debug only email sending
             if not self.debug:
                 self.console.print(f"Sending Email to [sec]{gifter_name}[/]")
-                self.Email.send_email(email_subject, email_body, recipient_email)
-
+                self.Email.send_email(
+                    subject=email_subject,
+                    body=email_body,
+                    to_email=recipient_email,
+                    text="html",
+                )
         if self.debug and email_body_test:
             print("\nStart of Email")
             print("---------------")

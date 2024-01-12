@@ -11,7 +11,7 @@ class Email:
         self.gmail_username = gmail_username
         self.gmail_password = gmail_password
 
-    def send_email(self, subject, body, to_email):
+    def send_email(self, subject, body, to_email, text="plain"):
         """
         Sends an email with `subject` and `body` to the `to_email`.
         """
@@ -20,7 +20,7 @@ class Email:
         message["To"] = to_email
         message["Subject"] = subject
 
-        message.attach(MIMEText(body, "html"))
+        message.attach(MIMEText(body, text))
 
         # message.attach(MIMEText(body, "plain"))
         context = ssl.create_default_context()
