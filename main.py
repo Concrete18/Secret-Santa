@@ -8,7 +8,7 @@ from rich.theme import Theme
 from classes.email import Email
 
 
-class SecretSanta(Email):
+class SecretSanta:
     # get config data
     config = Path("config.json")
     with open(config) as file:
@@ -21,6 +21,9 @@ class SecretSanta(Email):
     gmail_password = gmail["password"]
     test_email = gmail["test_email"]
 
+    # settings
+    debug = data["settings"]["debug"]
+
     Email = Email(gmail_username, gmail_password)
 
     # rich console
@@ -32,11 +35,10 @@ class SecretSanta(Email):
     )
     console = Console(theme=custom_theme)
 
-    def __init__(self, debug=False) -> None:
-        """
-        ph
-        """
-        self.debug = debug
+    # def __init__(self, debug=False) -> None:
+    #     """
+    #     ph
+    #     """
 
     @staticmethod
     def full_name(contact: dict) -> str:
@@ -260,5 +262,5 @@ class SecretSanta(Email):
 
 
 if __name__ == "__main__":
-    PairPicker = SecretSanta(debug=True)
+    PairPicker = SecretSanta()
     PairPicker.run()

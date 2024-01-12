@@ -10,7 +10,7 @@ class FullName(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ss = SecretSanta(debug=True)
+        self.ss = SecretSanta()
 
     def test_full_name(self):
         contact = {
@@ -28,7 +28,7 @@ class ValidPair(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ss = SecretSanta(debug=True)
+        self.ss = SecretSanta()
 
     def test_valid(self):
         person1 = {
@@ -67,7 +67,7 @@ class ValidatePairs(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ss = SecretSanta(debug=True)
+        self.ss = SecretSanta()
 
     def test_valid(self):
         pairs = [
@@ -142,7 +142,7 @@ class GetPermutations(unittest.TestCase):
     """
 
     def setUp(self):
-        self.ss = SecretSanta(debug=True)
+        self.ss = SecretSanta()
 
     def test_permutations(self):
         participants = [

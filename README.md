@@ -30,6 +30,9 @@ Create a config file named config.json and fill it as the example below is shown
 
 ```json
 {
+  "settings": {
+    "debug": false
+  },
   "gmail": {
     "test_email": "Insert Test Email",
     "username": "Insert Gmail set up for sending",
