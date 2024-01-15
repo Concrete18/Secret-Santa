@@ -19,9 +19,9 @@ class SecretSanta:
     # Gmail account details
     gmail_username = gmail["username"]
     gmail_password = gmail["password"]
-    test_email = gmail["test_email"]
 
     # settings
+    # TODO make debug optional
     debug = data["settings"]["debug"]
 
     Email = Email(gmail_username, gmail_password)
@@ -124,34 +124,98 @@ class SecretSanta:
         """
         gifter_name = self.full_name(gifter)
         giftee_name = self.full_name(giftee)
-        email_body = f"<h3>Hello {gifter_name},</h3>"
-        email_body += f"\n\nYour Secret Santa match is:<br>\n{giftee_name}"
+        head = """
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    color: #333;
+                    margin: 0;
+                    padding: 0;
+                    text-align: center;
+                }
+                .container {
+                    width: 100%;
+                    margin: 0 auto;
+                    padding: 10px;
+                    background-color: #fff;
+                    text-align: left;
+                }
+                h1 {
+                    color: #e42626;
+                    text-align: center;
+                }
+                h2 {
+                    text-align: center;
+                }
+                h3 {
+                    text-align: center;
+                }
+                p {
+                    font-size: 16px;
+                    line-height: 1.6;
+                    margin-bottom: 20px;
+                    text-align: center;
+                }
+                a {
+                    font-size: 16px;
+                    line-height: 1.6;
+                    margin-bottom: 20px;
+                    text-align: center;
+                }
 
-        # optional wishlist
-        if "wishlist" in giftee.keys():
-            wishlist = giftee["wishlist"]
-            if wishlist:
-                email_body += (
-                    f"\n\n<br><br><a href='{wishlist}'>{giftee_name}'s Wishlist</a>\n"
-                )
+                .footer {
+                    text-align: center;
+                    margin-top: 30px;
+                    font-size: 12px;
+                    color: #666;
+                }
+            </style>
+        </head>
+        """
+
+        contents = f"<h3>Hello {gifter_name},</h3>"
+        contents += f"<p>Exciting news! You are the Secret Santa for:</p>"
+        contents += f"<h2>{giftee_name}</h2><br>"
 
         # optional notes
         if "notes" in giftee.keys():
             notes = giftee["notes"]
             if notes:
-                email_body += (
-                    f"\n<br><br>Your giftee left the following notes:\n<br>{notes}"
-                )
+                contents += f"<p>Your giftee left the following notes:</p>"
+                contents += f"<p><em>{notes}</em></p><br>"
+
+        # optional wishlist
+        if "wishlist" in giftee.keys():
+            wishlist = giftee["wishlist"]
+            if wishlist:
+                contents += f"<p>{giftee_name} Wishlist: <a href='{wishlist}'>Click Here</a></p>"
 
         # optional permutations info
         if perms:
-            email_body += (
-                f"\n\n<br><br>This was one of {perms:,} pairings for everyone."
-            )
+            contents += f"<p>This was one of {perms:,} pairings for everyone.</p>"
 
-        email_body += f"\n\n<br><br>Merry Christmas!"
+        body = f"""
+        <body>
+            <div class="container" align="center" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
+                <h1>Secret Santa Match Revealed!</h1>
+                {contents}
+                <p>Gift Price should be limited to $100 or less.</p>
+                <p>Get ready to spread some holiday cheer and find the perfect gift for your Secret Santa match. Remember, it's all about the joy of giving!</p>
+                <p>Wishing you a wonderful holiday season!</p>
+                <div class="footer">
+                    <p>Best Regards,</p>
+                    <p>Your Secret Santa Organizer</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
 
-        return email_body
+        return head + body
 
     def send_secret_santa_emails(self, pairs, perms=None):
         """
@@ -159,38 +223,31 @@ class SecretSanta:
         """
         if self.debug:
             print("\nPairs:")
+
         for pair in pairs:
             gifter = pair[0]
             giftee = pair[1]
             gifter_name = self.full_name(gifter)
             giftee_name = self.full_name(giftee)
 
-            if self.debug:
-                self.console.print(f"\n[sec]{gifter_name}[/] to [sec]{giftee_name}[/]")
-                self.console.print(f"Last Giftee: [sec]{gifter['last_giftee']}[/]")
-
             # email setup creation
+            email_subject = "Secret Santa Match"
+            recipient_email = gifter["email"]
             email_body = self.create_email_body(gifter, giftee, perms)
 
-            # email body debug output
-            email_body_test = ""
             if self.debug:
-                if "Michael" in giftee_name:
-                    email_body_test = email_body
+                self.console.print(f"\n[sec]{gifter_name}[/] to [sec]{giftee_name}[/]")
+                if not gifter["last_giftee"]:
+                    gifter["last_giftee"] = "Unset"
+                self.console.print(f"Last Giftee: [sec]{gifter['last_giftee']}[/]")
+                if giftee_name == self.full_name(self.participants[0]):
                     self.Email.send_email(
                         subject=email_subject,
                         body=email_body,
                         to_email=recipient_email,
                         text="html",
                     )
-
-            # recipient_email = gifter["email"]
-            recipient_email = self.test_email
-
-            email_subject = "Secret Santa Match"
-
-            # non debug only email sending
-            if not self.debug:
+            else:
                 self.console.print(f"Sending Email to [sec]{gifter_name}[/]")
                 self.Email.send_email(
                     subject=email_subject,
@@ -198,12 +255,6 @@ class SecretSanta:
                     to_email=recipient_email,
                     text="html",
                 )
-        if self.debug and email_body_test:
-            print("\nStart of Email")
-            print("---------------")
-            print(email_body_test)
-            print("---------------")
-            print("End of Email")
 
         print("\nProcess Complete")
 
@@ -230,7 +281,10 @@ class SecretSanta:
         """
         full_names = [self.full_name(contact) for contact in participants]
         for participant in participants:
-            if participant["last_giftee"] not in full_names:
+            if (
+                participant["last_giftee"]
+                and participant["last_giftee"] not in full_names
+            ):
                 msg = f"Failed match {participant['last_giftee']} with anyone in participants list."
                 input(msg)
                 exit()
@@ -258,7 +312,7 @@ class SecretSanta:
                 exit()
 
         self.send_secret_santa_emails(pairs, permutations)
-        input()
+        # input()
 
 
 if __name__ == "__main__":
