@@ -30,34 +30,35 @@ class Email:
         styles_str = "".join(
             f"{selector} {{ {styles[selector]} }}" for selector in styles
         )
+
         # Construct the HTML content
         html_content = f"""
-            <!DOCTYPE html>
-            <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>{title}</title>
-                    <style>
-                        /* Add your default styles here */
-                        body {{
-                            font-family: Arial, sans-serif;
-                            background-color: #f4f4f4;
-                            color: #333;
-                            margin: 0;
-                            padding: 0;
-                            text-align: center;
-                        }}
-                        /* Add any additional styles provided as arguments */
-                        {styles_str}
-                    </style>
-                </head>
-                <body>
-                    <div>
-                        <h1>{title}</h1>
-                        <p>{message}</p>
-                    </div>
-                </body>
-            </html>
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>{title}</title>
+                <style>
+                    /* Add your default styles here */
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        color: #333;
+                        margin: 0;
+                        padding: 0;
+                        text-align: center;
+                    }}
+                    /* Add any additional styles provided as arguments */
+                    {styles_str}
+                </style>
+            </head>
+            <body>
+                <div>
+                    <h1>{title}</h1>
+                    <p>{message}</p>
+                </div>
+            </body>
+        </html>
         """
         return html_content
 
