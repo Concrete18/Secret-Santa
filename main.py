@@ -35,11 +35,6 @@ class SecretSanta:
     )
     console = Console(theme=custom_theme)
 
-    # def __init__(self, debug=False) -> None:
-    #     """
-    #     ph
-    #     """
-
     @staticmethod
     def full_name(contact: dict) -> str:
         """
@@ -118,7 +113,7 @@ class SecretSanta:
                 exit()
         return pairs
 
-    def create_email_body(self, gifter, giftee, perms):
+    def create_email_body(self, gifter, giftee):
         """
         ph
         """
@@ -194,10 +189,6 @@ class SecretSanta:
             if wishlist:
                 contents += f"<p>{giftee_name} Wishlist: <a href='{wishlist}'>Click Here</a></p>"
 
-        # optional permutations info
-        if perms:
-            contents += f"<p>This was one of {perms:,} pairings for everyone.</p>"
-
         body = f"""
         <body>
             <div class="container" align="center" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
@@ -217,7 +208,7 @@ class SecretSanta:
 
         return head + body
 
-    def send_secret_santa_emails(self, pairs, perms=None):
+    def send_secret_santa_emails(self, pairs):
         """
         ph
         """
@@ -233,7 +224,7 @@ class SecretSanta:
             # email setup creation
             email_subject = "Secret Santa Match"
             recipient_email = gifter["email"]
-            email_body = self.create_email_body(gifter, giftee, perms)
+            email_body = self.create_email_body(gifter, giftee)
 
             if self.debug:
                 self.console.print(f"\n[sec]{gifter_name}[/] to [sec]{giftee_name}[/]")
@@ -311,8 +302,8 @@ class SecretSanta:
                 input("\nCanceled")
                 exit()
 
-        self.send_secret_santa_emails(pairs, permutations)
-        # input()
+        self.send_secret_santa_emails(pairs)
+        input()
 
 
 if __name__ == "__main__":
