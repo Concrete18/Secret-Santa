@@ -1,0 +1,110 @@
+<!-- christmas_card_template.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      transform-origin: top center;
+      width: 100%;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      justify-items: center;
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+    }
+
+    .container {
+      width: 100%;
+      margin: 0 auto;
+      background-color: #f7f7f7;
+      border: 1px solid #dddddd;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-image {
+      width:100%;
+      height:auto;
+      margin: 0;
+    }
+
+    .notes {
+      padding: 10px;
+    }
+
+    .content {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .footer {
+      font-size: 17px;
+      font-weight: bold;
+      background-color: #a2d0b3;
+      color: #c92627;
+      padding: 10px;
+      text-align: center;
+    }
+
+    /* Smartphones (portrait and landscape) ----------- */
+    @media only screen and (min-device-width: 320px) and (max-device-width: 480px) {
+      .container {
+        max-width: None;
+      }
+
+      p {
+        padding: 20px;
+      }
+
+      .footer {
+        margin-top: 60px;
+      }
+    }
+
+    /* Desktops and laptops ----------- */
+    @media only screen and (min-width: 1224px) {
+      .container {
+        max-width: 800px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <!-- This must be replaced if you want to use your own image/host this one yourself -->
+      <img src="https://raw.githubusercontent.com/Concrete18/Secret-Santa/main/images/secret-santa-banner.jpg" alt="Secret Santa Image" class="header-image">
+    </div>
+
+    <div class="content">
+      <h3>Hello <strong>{{gifter_name}}</strong>,</h3>
+      <p>Exciting news! You are the Secret Santa for</p>
+      <strong>{{giftee_name}}.</strong>
+
+      {% if notes %}
+        <div class="notes">
+          <p>{{giftee_name}} left the following notes:</p>
+          <em>{{notes}}</em>
+        </div>
+      {% endif %}
+
+      {% if wishlist_link %}
+        <p>{{giftee_name}}'s' Wishlist: <a href='{{wishlist_link}}'>Click Here</a></p>
+      {% endif %}
+
+      <p>Gift Price should be limited to <strong>$100</strong> or less.</p>
+      <p>Get ready to spread some holiday cheer and find the perfect gift for your Secret Santa match. Remember, it's all about the joy of giving!</p>
+      <p>Wishing you a wonderful holiday season!</p>
+    </div>
+
+    <div class="footer">
+      <p>Best Regards,</p>
+      <p>Your Secret Santa Organizer</p>
+    </div>
+
+  </div>
+</body>
+</html>

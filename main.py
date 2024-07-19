@@ -1,10 +1,14 @@
+# builtin
 from pathlib import Path
 import datetime as dt
 import random, json
 
+# installed
+from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
 from rich.theme import Theme
 
+# local
 from classes.email import Email
 
 
@@ -13,20 +17,20 @@ class SecretSanta:
     config = Path("config.json")
     with open(config) as file:
         data = json.load(file)
-        gmail = data["gmail"]
-        participants = data["participants"]
+        gmail = data.get("gmail", False)
+        participants = data.get("participants", [])
 
     # Gmail account details
-    gmail_username = gmail["username"]
-    gmail_password = gmail["password"]
+    gmail_username = gmail.get("username", False)
+    gmail_password = gmail.get("password", False)
+    test_email = gmail.get("test_email", False)
 
     # settings
-    # TODO make debug optional
-    debug = data["settings"]["debug"]
+    debug = data.get("settings", {}).get("debug", False)
 
     Email = Email(gmail_username, gmail_password)
 
-    # rich console
+    # rich console setup
     custom_theme = Theme(
         {
             "prim": "bold deep_sky_blue1",
@@ -91,7 +95,8 @@ class SecretSanta:
         self, participants: list[dict], attempt_limit=1_000
     ) -> list[tuple]:
         """
-        ph
+        Creates pairs from `participants` and checks if they are valid until the a
+        valid pair is found or the `attempt_limit` is reached.
         """
         while True:
             possible_giftees = participants.copy()
@@ -113,118 +118,40 @@ class SecretSanta:
                 exit()
         return pairs
 
-    def create_email_body(self, gifter, giftee):
-        """
-        ph
-        """
-        gifter_name = self.full_name(gifter)
-        giftee_name = self.full_name(giftee)
-        head = """
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    color: #333;
-                    margin: 0;
-                    padding: 0;
-                    text-align: center;
-                }
-                .container {
-                    width: 100%;
-                    margin: 0 auto;
-                    padding: 10px;
-                    background-color: #fff;
-                    text-align: left;
-                }
-                h1 {
-                    color: #e42626;
-                    text-align: center;
-                }
-                h2 {
-                    text-align: center;
-                }
-                h3 {
-                    text-align: center;
-                }
-                p {
-                    font-size: 16px;
-                    line-height: 1.6;
-                    margin-bottom: 20px;
-                    text-align: center;
-                }
-                a {
-                    font-size: 16px;
-                    line-height: 1.6;
-                    margin-bottom: 20px;
-                    text-align: center;
-                }
-
-                .footer {
-                    text-align: center;
-                    margin-top: 30px;
-                    font-size: 12px;
-                    color: #666;
-                }
-            </style>
-        </head>
-        """
-
-        contents = f"<h3>Hello {gifter_name},</h3>"
-        contents += f"<p>Exciting news! You are the Secret Santa for:</p>"
-        contents += f"<h2>{giftee_name}</h2><br>"
-
-        # optional notes
-        if "notes" in giftee.keys():
-            notes = giftee["notes"]
-            if notes:
-                contents += f"<p>Your giftee left the following notes:</p>"
-                contents += f"<p><em>{notes}</em></p><br>"
-
-        # optional wishlist
-        if "wishlist" in giftee.keys():
-            wishlist = giftee["wishlist"]
-            if wishlist:
-                contents += f"<p>{giftee_name} Wishlist: <a href='{wishlist}'>Click Here</a></p>"
-
-        body = f"""
-        <body>
-            <div class="container" align="center" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
-                <h1>Secret Santa Match Revealed!</h1>
-                {contents}
-                <p>Gift Price should be limited to $100 or less.</p>
-                <p>Get ready to spread some holiday cheer and find the perfect gift for your Secret Santa match. Remember, it's all about the joy of giving!</p>
-                <p>Wishing you a wonderful holiday season!</p>
-                <div class="footer">
-                    <p>Best Regards,</p>
-                    <p>Your Secret Santa Organizer</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-
-        return head + body
+    def create_html(self, data):
+        env = Environment(loader=FileSystemLoader("."))
+        template = env.get_template("christmas_card_template.html")
+        html_content = template.render(data)
+        # writes to a file for local testing
+        if self.debug:
+            with open("test.html", "w") as file:
+                file.write(html_content)
+        return html_content
 
     def send_secret_santa_emails(self, pairs):
         """
-        ph
+        Sends emails to all participants for Secret Santa.
         """
         if self.debug:
             print("\nPairs:")
 
         for pair in pairs:
-            gifter = pair[0]
-            giftee = pair[1]
+            gifter, giftee = pair
             gifter_name = self.full_name(gifter)
             giftee_name = self.full_name(giftee)
 
             # email setup creation
             email_subject = "Secret Santa Match"
             recipient_email = gifter["email"]
-            email_body = self.create_email_body(gifter, giftee)
+
+            data = {
+                "gifter_name": gifter_name,
+                "giftee_name": giftee_name,
+                "notes": giftee["notes"],
+                "wishlist_link": giftee["wishlist"],
+            }
+
+            email_body = self.create_html(data)
 
             if self.debug:
                 self.console.print(f"\n[sec]{gifter_name}[/] to [sec]{giftee_name}[/]")
@@ -249,9 +176,9 @@ class SecretSanta:
 
         print("\nProcess Complete")
 
-    def get_permutations(self, participants):
+    def get_permutations_count_count(self, participants):
         """
-        ph
+        Gets the total permutations count for `participants`.
         """
         combos = []
         for gifter in participants:
@@ -266,41 +193,55 @@ class SecretSanta:
             permutations = permutations * n
         return permutations
 
+    def validate_emails(self, participants):
+        """
+        Validates emails for `participants`.
+        """
+        for participant in participants:
+            email = participant["email"]
+            full_name = self.full_name(participant)
+            if self.Email.validate_email(""):
+                msg = f"{email} for {full_name} is not a valid email."
+                input(msg)
+                exit()
+
     def validate_last_giftees(self, participants):
         """
-        ph
+        Validates each participants last giftee to be sure they are found within `participants`.
         """
         full_names = [self.full_name(contact) for contact in participants]
         for participant in participants:
-            if (
-                participant["last_giftee"]
-                and participant["last_giftee"] not in full_names
-            ):
-                msg = f"Failed match {participant['last_giftee']} with anyone in participants list."
+            last_giftee = participant["last_giftee"]
+            if last_giftee and last_giftee not in full_names:
+                msg = f"Failed to match {participant['last_giftee']} with anyone in participants list."
                 input(msg)
                 exit()
 
     def run(self):
-        """
-        ph
-        """
-        self.console.print(
-            f"[prim]Secret Santa Pair Picker[/] | [sec]{dt.datetime.now().year}[/]\n"
-        )
+        year = dt.datetime.now().year
+        title = f"[prim]Secret Santa Pair Picker[/] | [sec]{year}[/]\n"
+        self.console.print(title)
 
+        # validationms
+        self.validate_emails(self.participants)
         self.validate_last_giftees(self.participants)
 
-        permutations = self.get_permutations(self.participants)
+        permutations = self.get_permutations_count(self.participants)
         print(f"There are {permutations:,} pair permutations.")
 
         pairs = self.create_pairs(self.participants)
 
         if not self.debug:
-            msg = "\nDo you want to notify everyone who their secret santa is?\n"
+            print("\nEmails will be sent to the following addresses:")
+            for participant in self.participants:
+                print(participant["email"])
+
+            msg = "\nDo you want to notify everyone who their Secret Santa is?\n"
             response = input(msg)
             if not response.lower() in ["yes", "y"]:
-                input("\nCanceled")
+                input("\nCancelled")
                 exit()
+            print()
 
         self.send_secret_santa_emails(pairs)
         input()
@@ -308,4 +249,12 @@ class SecretSanta:
 
 if __name__ == "__main__":
     PairPicker = SecretSanta()
+    # data = {
+    #     "gifter_name": "Michael Ericson",
+    #     "giftee_name": "Brian Napier",
+    #     "wishlist_link": "https://www.giftster.com/list/A5IgT/",
+    #     "notes": "Test Notes Here.",
+    # }
+    # PairPicker.create_html(data)
+    # exit()
     PairPicker.run()

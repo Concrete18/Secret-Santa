@@ -1,4 +1,5 @@
 import unittest
+import random, string
 
 # classes
 from main import SecretSanta
@@ -138,7 +139,7 @@ class ValidatePairs(unittest.TestCase):
 
 class GetPermutations(unittest.TestCase):
     """
-    Tests `get_permutations` function.
+    Tests `get_permutations_count` function.
     """
 
     def setUp(self):
@@ -177,8 +178,46 @@ class GetPermutations(unittest.TestCase):
                 "last_giftee": "",
             },
         ]
-        permutations = self.ss.get_permutations(participants)
+        permutations = self.ss.get_permutations_count(participants)
         self.assertEqual(permutations, 1296, "Should have 1296 permutations")
+
+
+class CreatePairs(unittest.TestCase):
+    """
+    Tests `create_pairs` function.
+    """
+
+    def setUp(self):
+        self.ss = SecretSanta()
+
+    @staticmethod
+    def generate_random_string(length):
+        letters = string.ascii_letters
+        return "".join(random.choice(letters) for _ in range(length))
+
+    def generate_random_participants(self, length):
+        # {
+        #     "first": "John",
+        #     "last": "Doe",
+        #     "last_giftee": "Linda German",
+        # },
+        participants = []
+        for _ in range(length):
+            first_name = self.generate_random_string(5)
+            last_name = self.generate_random_string(5)
+            entry = {"first": first_name, "last": last_name}
+            participants.append(entry)
+        original_participants_order = random.sample(participants, len(participants))
+        random.shuffle(participants)
+        for participant in original_participants_order:
+            participant["last_giftee"] = self.ss.full_name(participant)
+        return participants
+
+    def test_create_pairs(self):
+        participants = self.generate_random_participants(4)
+        # print(participants)
+        pairs = self.ss.create_pairs(participants)
+        print(pairs)
 
 
 if __name__ == "__main__":
