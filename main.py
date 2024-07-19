@@ -176,7 +176,7 @@ class SecretSanta:
 
         print("\nProcess Complete")
 
-    def get_permutations_count_count(self, participants):
+    def get_permutations_count(self, participants):
         """
         Gets the total permutations count for `participants`.
         """
