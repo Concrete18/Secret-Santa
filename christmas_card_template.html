@@ -1,4 +1,3 @@
-<!-- christmas_card_template.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -31,7 +30,7 @@
     }
 
     .notes {
-      padding: 10px;
+      padding: 15px;
     }
 
     .content {
@@ -81,26 +80,30 @@
 
     <div class="content">
       <h3>Hello <strong>{{gifter_name}}</strong>,</h3>
-      <p>Exciting news! You are the Secret Santa for</p>
-      <strong>{{giftee_name}}.</strong>
+      <p>Exciting news! You are the Secret Santa for:</p>
+      <strong>{{giftee_name}}</strong>
 
-      {% if notes %}
+      {% if notes or wishlist %}
         <div class="notes">
-          <p>{{giftee_name}} left the following notes:</p>
-          <em>{{notes}}</em>
+          <p>{{giftee_name}} left you the following notes:</p>
+          
+          {% if notes %}
+          <p>{{notes}}</p>
+          {% endif %}
+    
+          {% if wishlist %}
+          <a href='{{wishlist}}'>{{giftee_name}}'s' Wishlist</a>
+          {% endif %}
         </div>
       {% endif %}
 
-      {% if wishlist_link %}
-        <p>{{giftee_name}}'s' Wishlist: <a href='{{wishlist_link}}'>Click Here</a></p>
-      {% endif %}
-
       <p>Gift Price should be limited to <strong>$100</strong> or less.</p>
-      <p>Get ready to spread some holiday cheer and find the perfect gift for your Secret Santa match. Remember, it's all about the joy of giving!</p>
-      <p>Wishing you a wonderful holiday season!</p>
+      <p>Get ready to spread some holiday cheer and find the perfect gift for your Secret Santa match.</p>
+      <p>Remember, it's all about the joy of giving!</p>
     </div>
-
+    
     <div class="footer">
+      <p>Wishing you a wonderful holiday season!</p>
       <p>Best Regards,</p>
       <p>Your Secret Santa Organizer</p>
     </div>
