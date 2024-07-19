@@ -1,4 +1,4 @@
-import smtplib, ssl
+import smtplib, ssl, re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -10,6 +10,11 @@ class Email:
         """
         self.gmail_username = gmail_username
         self.gmail_password = gmail_password
+
+    @staticmethod
+    def validate_email(email):
+        regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+        return re.fullmatch(regex, email)
 
     @staticmethod
     def generate_html(
