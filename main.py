@@ -249,12 +249,13 @@ class SecretSanta:
 
 if __name__ == "__main__":
     PairPicker = SecretSanta()
-    # data = {
-    #     "gifter_name": "Michael Ericson",
-    #     "giftee_name": "Brian Napier",
-    #     "wishlist_link": "https://www.giftster.com/list/A5IgT/",
-    #     "notes": "Test Notes Here.",
-    # }
-    # PairPicker.create_html(data)
+    # PairPicker.create_html(
+    #     {
+    #         "gifter_name": "Michael Ericson",
+    #         "giftee_name": "Brian Napier",
+    #         # "wishlist": "https://www.giftster.com/list/A5IgT/",
+    #         # "notes": "Test Notes Here.",
+    #     }
+    # )
     # exit()
     PairPicker.run()
