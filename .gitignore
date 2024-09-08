@@ -160,6 +160,6 @@ cython_debug/
 #.idea/
 
 # custom
-*config.json
+config*.json
 .vscode
 test.html

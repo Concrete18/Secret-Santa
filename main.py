@@ -1,62 +1,120 @@
-# builtin
+# standard library
 from pathlib import Path
 import datetime as dt
 import random, json
+from dataclasses import dataclass
 
-# installed
+# third-party imports
 from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
+from rich.table import Table
 from rich.theme import Theme
 
-# local
-from classes.email import Email
+# local imports
+from utils.email import Email
+from utils.action_picker import action_picker
+
+
+class Person:
+    def __init__(self, data):
+        self.first_name = data.get("first", None)
+        self.last_name = data.get("last", None)
+        self.email = data.get("email", None)
+        self.prev_giftee = data.get("prev_giftee", None)
+        self.wishlist = data.get("wishlist", None)
+        self.notes = data.get("wishlist", None)
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def validate(self, other: "Person") -> bool:
+        """
+        Determines if `person1` and `person2` are a valid pair.
+        """
+        # same last name
+        if self.last_name == other.last_name:
+            return False
+        # previous giftee
+        if other.first_name in self.prev_giftee and other.last_name in self.prev_giftee:
+            return False
+        # same person
+        if self == other:
+            return False
+        return True
+
+
+@dataclass()
+class Pair:
+    person1: Person
+    person2: Person
+
+    def validate(self) -> bool:
+        """
+        Determines if `person1` and `person2` are a valid pair.
+        """
+        # same last name
+        if self.person1.last_name == self.person2.last_name:
+            return False
+        # previous giftee
+        if (
+            self.person2.first_name in self.person1.prev_giftee
+            and self.person2.last_name in self.person1.prev_giftee
+        ):
+            return False
+        # same person
+        if self.person1 == self.person2:
+            return False
+        return True
 
 
 class SecretSanta:
-    # get config data
     config = Path("config.json")
     with open(config) as file:
         data = json.load(file)
         gmail = data.get("gmail", False)
-        participants = data.get("participants", [])
+
+        entries = []
+        for person in data.get("entries", []):
+            entries.append(Person(person))
+
+        test_entries = []
+        for test_person in data.get("test_entries", []):
+            test_entries.append(Person(test_person))
 
     # Gmail account details
     gmail_username = gmail.get("username", False)
     gmail_password = gmail.get("password", False)
     test_email = gmail.get("test_email", False)
-
-    # settings
-    debug = data.get("settings", {}).get("debug", False)
-
-    Email = Email(gmail_username, gmail_password)
+    email = Email(gmail_username, gmail_password)
 
     # rich console setup
     custom_theme = Theme(
         {
             "prim": "bold deep_sky_blue1",
             "sec": "bold pale_turquoise1",
+            # christmas colors
+            "theme-red": "bright_red",
+            "theme-green": "bright_green",
         }
     )
     console = Console(theme=custom_theme)
 
-    @staticmethod
-    def full_name(contact: dict) -> str:
-        """
-        Gets fullname for `contact`.
-        """
-        return f"{contact['first']} {contact['last']}"
-
-    def valid_pair(self, person1: dict, person2: dict) -> bool:
+    def valid_pair(
+        self,
+        person1: Person,
+        person2: Person,
+    ) -> bool:
         """
         Determines if `person1` and `person2` are a valid pair.
         """
         # same last name
-        if person1["last"] == person2["last"]:
+        if person1.last_name == person2.last_name:
             return False
         # previous giftee
         if (
-            person2["first"] in person1["last_giftee"]
-            and person2["last"] in person1["last_giftee"]
+            person2.first_name in person1.prev_giftee
+            and person2.last_name in person1.prev_giftee
         ):
             return False
         # same person
@@ -64,7 +122,7 @@ class SecretSanta:
             return False
         return True
 
-    def validate_pairs(self, pairs: list[dict]) -> bool:
+    def validate_pairs(self, pairs: list[list[Person, Person]]) -> bool:
         """
         Determines if the list of `pairs` are all valid.
         """
@@ -73,10 +131,9 @@ class SecretSanta:
             gifter, giftee = pair[0], pair[1]
             if not self.valid_pair(gifter, giftee):
                 return False
-            giftee_full_name = self.full_name(giftee)
-            if giftee_full_name in unique_giftee:
+            if giftee.full_name in unique_giftee:
                 return False
-            unique_giftee.append(giftee_full_name)
+            unique_giftee.append(giftee.full_name)
         return True
 
     def create_pair(self, gifter: dict, possible_giftees: list[dict]) -> tuple[dict]:
@@ -91,24 +148,22 @@ class SecretSanta:
             return pair
         return {}
 
-    def create_pairs(
-        self, participants: list[dict], attempt_limit=1_000
-    ) -> list[tuple]:
+    def create_pairs(self, entries: list[Person], attempt_limit=1_000) -> list[tuple]:
         """
-        Creates pairs from `participants` and checks if they are valid until the a
+        Creates pairs from `entries` and checks if they are valid until the a
         valid pair is found or the `attempt_limit` is reached.
         """
         while True:
-            possible_giftees = participants.copy()
+            possible_giftees = entries.copy()
             random.shuffle(possible_giftees)
 
             pairs = []
-            for gifter in participants:
+            for gifter in entries:
                 new_pair = self.create_pair(gifter, possible_giftees)
                 if new_pair:
                     pairs.append(new_pair)
 
-            if self.validate_pairs(pairs) and len(pairs) == len(participants):
+            if self.validate_pairs(pairs) and len(pairs) == len(entries):
                 break
 
             attempt_limit -= 1
@@ -118,72 +173,115 @@ class SecretSanta:
                 exit()
         return pairs
 
-    def create_html(self, data):
+    def create_html(self, data, write_to_file: bool = False):
+        """
+        Creates an html file with the given `data`.
+        Writes to a file if `write_to_file` is True.
+        """
         env = Environment(loader=FileSystemLoader("."))
         template = env.get_template("christmas_card_template.html")
         html_content = template.render(data)
         # writes to a file for local testing
-        if self.debug:
+        if write_to_file:
             with open("test.html", "w") as file:
                 file.write(html_content)
         return html_content
 
-    def send_secret_santa_emails(self, pairs):
+    def create_test_email(self):
         """
-        Sends emails to all participants for Secret Santa.
+        Creates a HTML test file.
         """
-        if self.debug:
-            print("\nPairs:")
+        self.create_html(
+            data={
+                "gifter_name": "John Smith",
+                "giftee_name": "Jane Doe",
+                "wishlist": "https://www.giftster.com/list/A5IgT/",
+                "notes": "Test Notes Here.",
+            },
+            write_to_file=True,
+        )
+        # TODO Ask to open in browser
 
-        for pair in pairs:
-            gifter, giftee = pair
-            gifter_name = self.full_name(gifter)
-            giftee_name = self.full_name(giftee)
+    def show_entries_table(self, entries: list[Person]):
+        """
+        Shows Entry Data with a table.
+        """
+        table = Table(
+            title="Secret Santa Entries",
+            show_lines=True,
+            title_style="bold",
+            style="theme-green",
+        )
+        table.add_column("First Name", justify="left")
+        table.add_column("Last Name", justify="left")
+        table.add_column("Email", justify="left")
+        table.add_column("Last Giftee", justify="left")
+        table.add_column("Wishlist Link", justify="left")
 
-            # email setup creation
+        for entry in entries:
+            row = [
+                entry.first_name,
+                entry.last_name,
+                entry.email,
+                entry.prev_giftee,
+                entry.wishlist,
+            ]
+            table.add_row(*row)
+
+        self.console.print(table, new_line_start=True)
+
+    def send_secret_santa_emails(
+        self,
+        pairs: list[list[Person, Person]],
+        test: bool = False,
+    ):
+        """
+        Sends emails to all entries for Secret Santa.
+        """
+        print("\nPairs:")
+
+        for gifter, giftee in pairs:
+
+            self.console.print(f"\nSending email to [sec]{gifter.full_name}[/]")
+
+            if test:
+                self.console.print(f"New Giftee [sec]{giftee.full_name}[/]")
+
+                last_giftee = gifter.prev_giftee if gifter.prev_giftee else "Unset"
+                self.console.print(f"Last Giftee: [sec]{last_giftee}[/]")
+
+            # email
             email_subject = "Secret Santa Match"
-            recipient_email = gifter["email"]
+            email_body = self.create_html(
+                {
+                    "gifter_name": gifter.full_name,
+                    "giftee_name": giftee.full_name,
+                    "notes": giftee.notes,
+                    "wishlist_link": giftee.wishlist,
+                }
+            )
 
-            data = {
-                "gifter_name": gifter_name,
-                "giftee_name": giftee_name,
-                "notes": giftee["notes"],
-                "wishlist_link": giftee["wishlist"],
-            }
-
-            email_body = self.create_html(data)
-
-            if self.debug:
-                self.console.print(f"\n[sec]{gifter_name}[/] to [sec]{giftee_name}[/]")
-                if not gifter["last_giftee"]:
-                    gifter["last_giftee"] = "Unset"
-                self.console.print(f"Last Giftee: [sec]{gifter['last_giftee']}[/]")
-                if giftee_name == self.full_name(self.participants[0]):
-                    self.Email.send_email(
-                        subject=email_subject,
-                        body=email_body,
-                        to_email=recipient_email,
-                        text="html",
-                    )
-            else:
-                self.console.print(f"Sending Email to [sec]{gifter_name}[/]")
-                self.Email.send_email(
+            try:
+                self.email.send_email(
                     subject=email_subject,
                     body=email_body,
-                    to_email=recipient_email,
+                    to_email=gifter.email,
                     text="html",
                 )
+            except Exception as e:
+                msg = f"Failed to send email to [sec]{gifter.full_name}[/]: {e}"
+                self.console.print(msg)
 
         print("\nProcess Complete")
 
-    def get_permutations_count(self, participants):
+    def get_permutations_count(self, entries):
         """
-        Gets the total permutations count for `participants`.
+        Gets the total permutations count for `entries`.
         """
         combos = []
-        for gifter in participants:
+        for gifter in entries:
             valid_pairs = 0
-            for giftee in participants:
+            for giftee in entries:
                 if self.valid_pair(giftee, gifter):
                     valid_pairs += 1
             combos.append(valid_pairs)
@@ -193,69 +291,81 @@ class SecretSanta:
             permutations = permutations * n
         return permutations
 
-    def validate_emails(self, participants):
+    def validate_emails(self, entries: list[Person]):
         """
-        Validates emails for `participants`.
+        Validates emails for `entries`.
         """
-        for participant in participants:
-            email = participant["email"]
-            full_name = self.full_name(participant)
-            if self.Email.validate_email(""):
-                msg = f"{email} for {full_name} is not a valid email."
+        for entry in entries:
+            if not self.email.validate_email(entry.email):
+                msg = f"{entry.email} for {entry.full_name} is not a valid email."
                 input(msg)
                 exit()
 
-    def validate_last_giftees(self, participants):
+    def validate_prev_giftees(self, entries: list[Person]):
         """
-        Validates each participants last giftee to be sure they are found within `participants`.
+        Validates each entries last giftee to be sure they are found within `entries`.
         """
-        full_names = [self.full_name(contact) for contact in participants]
-        for participant in participants:
-            last_giftee = participant["last_giftee"]
-            if last_giftee and last_giftee not in full_names:
-                msg = f"Failed to match {participant['last_giftee']} with anyone in participants list."
+        full_names = [entry.full_name for entry in entries]
+        for entry in entries:
+            if entry.prev_giftee and entry.prev_giftee not in full_names:
+                msg = (
+                    f"Failed to match {entry.prev_giftee} with anyone in entries list."
+                )
                 input(msg)
                 exit()
 
-    def run(self):
+    def create_pairs_and_send(self, entries: list[Person], test=False):
+        """
+        Creates pairs from `entires` and sends the emails out.
+        """
+        if test:
+            print("\nStarting Test")
+
+        self.validate_emails(entries)
+        self.validate_prev_giftees(entries)
+
+        permutations = self.get_permutations_count(entries)
+        print(f"\nThere are {permutations:,} pair permutations.")
+
+        print("\nEmails will be sent to the following addresses:")
+        for entry in entries:
+            print(entry.email)
+
+        msg = "\nDo you want to notify everyone who their Secret Santa is?\n"
+        response = input(msg)
+        if not response.lower() in ["yes", "y"]:
+            input("\nCancelled")
+            return
+
+        pairs = self.create_pairs(entries)
+        self.send_secret_santa_emails(pairs=pairs, test=test)
+        input()
+
+    def menu_actions(self) -> None:
+        main_run = lambda: self.create_pairs_and_send(self.entries)
+        test_run = lambda: self.create_pairs_and_send(self.test_entries, test=True)
+        choices = [
+            ("Send Secret Santa Emails", main_run),
+            ("Send Test Emails", test_run),
+            ("Create Test HTML File", self.create_test_email),
+            ("Show Entries Table", lambda: self.show_entries_table(self.entries)),
+            ("Exit", exit),
+        ]
+        action_picker(choices)
+        exit()
+
+    def main(self):
         year = dt.datetime.now().year
-        title = f"[prim]Secret Santa Pair Picker[/] | [sec]{year}[/]\n"
+        title = f"[theme-green]Secret Santa Pair Picker[/] | [theme-red]{year}[/]"
         self.console.print(title)
 
-        # validationms
-        self.validate_emails(self.participants)
-        self.validate_last_giftees(self.participants)
+        self.show_entries_table(self.entries)
 
-        permutations = self.get_permutations_count(self.participants)
-        print(f"There are {permutations:,} pair permutations.")
-
-        pairs = self.create_pairs(self.participants)
-
-        if not self.debug:
-            print("\nEmails will be sent to the following addresses:")
-            for participant in self.participants:
-                print(participant["email"])
-
-            msg = "\nDo you want to notify everyone who their Secret Santa is?\n"
-            response = input(msg)
-            if not response.lower() in ["yes", "y"]:
-                input("\nCancelled")
-                exit()
-            print()
-
-        self.send_secret_santa_emails(pairs)
-        input()
+        self.menu_actions()
 
 
 if __name__ == "__main__":
-    PairPicker = SecretSanta()
-    # PairPicker.create_html(
-    #     {
-    #         "gifter_name": "Michael Ericson",
-    #         "giftee_name": "Brian Napier",
-    #         # "wishlist": "https://www.giftster.com/list/A5IgT/",
-    #         # "notes": "Test Notes Here.",
-    #     }
-    # )
-    # exit()
-    PairPicker.run()
+    App = SecretSanta()
+    # App.main()
+
+    App.create_pairs_and_send(App.test_entries, test=True)

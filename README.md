@@ -30,20 +30,28 @@ Create a config file named config.json and fill it as the example below is shown
 
 ```json
 {
-  "settings": {
-    "debug": false
-  },
+  "settings": {},
   "gmail": {
     "test_email": "Insert Test Email",
     "username": "Insert Gmail set up for sending",
     "password": "Insert Gmail App Password"
   },
-  "participants": [
+  "test_entries": [
     {
       "first": "John",
       "last": "Smith",
       "email": "test@gmail.com",
-      "last_giftee": "Jane Doe",
+      "prev_giftee": "Jane Doe",
+      "notes": "Optional - Insert Notes",
+      "wishlist": "Optional - Insert wishlist link"
+    }
+  ],
+  "entries": [
+    {
+      "first": "John",
+      "last": "Smith",
+      "email": "test@gmail.com",
+      "prev_giftee": "Jane Doe",
       "notes": "Optional - Insert Notes",
       "wishlist": "Optional - Insert wishlist link"
     }
@@ -53,4 +61,6 @@ Create a config file named config.json and fill it as the example below is shown
 
 ### Run
 
-Once you have all the dependencies and have set up the config, just run the python script and it will find valid pairs and send them emails with their pairs for you. As long as you do not look at the sent emails with the gmail account or turn on the debug settings, you will not know who has who.
+Once you have all the dependencies and have set up the config, just run the python script and it will find
+valid pairs and send them emails with their pairs for you. As long as you do not look at the sent emails with
+the gmail account or turn on the test settings, you will not know who has who.
