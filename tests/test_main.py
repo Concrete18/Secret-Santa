@@ -5,9 +5,9 @@ import random, string
 from main import SecretSanta, Person
 
 
-class TestValidPair:
+class TestIsValidPair:
     """
-    Tests `valid_pair` function.
+    Tests `is_valid_pair` function.
     """
 
     ss = SecretSanta()
@@ -29,7 +29,7 @@ class TestValidPair:
                 "prev_giftee": "John Doe",
             }
         )
-        assert self.ss.valid_pair(person1, person2)
+        assert self.ss.is_valid_pair(person1, person2)
 
     def test_invalid(self):
         person1 = Person(
@@ -48,7 +48,57 @@ class TestValidPair:
                 "prev_giftee": "Brenda Doe",
             }
         )
-        assert not self.ss.valid_pair(person1, person2)
+        assert not self.ss.is_valid_pair(person1, person2)
+
+
+class TestFindValidPair:
+    """
+    Tests `is_valid_pair` function.
+    """
+
+    ss = SecretSanta()
+
+    def test_valid(self):
+        gifter = Person(
+            {
+                "first": "Bill",
+                "last": "German",
+                "prev_giftee": "John Doe",
+            }
+        )
+        data = [
+            {
+                "first": "John",
+                "last": "Doe",
+                "prev_giftee": "Linda German",
+            },
+            {
+                "first": "Jane",
+                "last": "Doe",
+                "prev_giftee": "Bill German",
+            },
+            {
+                "first": "Linda",
+                "last": "German",
+                "prev_giftee": "Jane Doe",
+            },
+            {
+                "first": "Ryan",
+                "last": "Bickman",
+                "prev_giftee": "",
+            },
+            {
+                "first": "Ellie",
+                "last": "Bickman",
+                "prev_giftee": "",
+            },
+        ]
+        entries = [Person(entry) for entry in data]
+        random.shuffle(entries)
+        gifter, giftee = self.ss.find_valid_pair(gifter, entries)
+        assert giftee.last_name != "German"
+        assert gifter.prev_giftee != giftee.full_name
+        assert gifter.last_name != giftee.last_name
 
 
 class TestValidatePairs:
@@ -141,7 +191,7 @@ class TestValidatePairs:
         assert not self.ss.validate_pairs(pairs)
 
 
-class TestGetPermutations:
+class TestGetPermutationsCount:
     """
     Tests `get_permutations_count` function.
     """
@@ -194,11 +244,11 @@ class TestCreatePairs:
     ss = SecretSanta()
 
     @staticmethod
-    def generate_random_string(length):
+    def generate_random_string(length: int) -> str:
         letters = string.ascii_letters
         return "".join(random.choice(letters) for _ in range(length))
 
-    def generate_random_entries(self, length):
+    def generate_random_entries(self, length: int) -> list[Person]:
         entries = []
         for _ in range(length):
             first_name = self.generate_random_string(5)

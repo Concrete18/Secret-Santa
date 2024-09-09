@@ -16,7 +16,7 @@ from utils.action_picker import action_picker
 
 
 class Person:
-    def __init__(self, data):
+    def __init__(self, data: dict) -> None:
         self.first_name = data.get("first", None)
         self.last_name = data.get("last", None)
         self.email = data.get("email", None)
@@ -24,48 +24,16 @@ class Person:
         self.wishlist = data.get("wishlist", None)
         self.notes = data.get("wishlist", None)
 
+    def __repr__(self) -> str:
+        return (
+            f"Person(\nfirst_name={self.first_name}, last_name={self.last_name}, "
+            f"email={self.email}, prev_giftee={self.prev_giftee}, "
+            f"wishlist={self.wishlist}, notes={self.notes})"
+        )
+
     @property
-    def full_name(self):
+    def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
-
-    def validate(self, other: "Person") -> bool:
-        """
-        Determines if `person1` and `person2` are a valid pair.
-        """
-        # same last name
-        if self.last_name == other.last_name:
-            return False
-        # previous giftee
-        if other.first_name in self.prev_giftee and other.last_name in self.prev_giftee:
-            return False
-        # same person
-        if self == other:
-            return False
-        return True
-
-
-@dataclass()
-class Pair:
-    person1: Person
-    person2: Person
-
-    def validate(self) -> bool:
-        """
-        Determines if `person1` and `person2` are a valid pair.
-        """
-        # same last name
-        if self.person1.last_name == self.person2.last_name:
-            return False
-        # previous giftee
-        if (
-            self.person2.first_name in self.person1.prev_giftee
-            and self.person2.last_name in self.person1.prev_giftee
-        ):
-            return False
-        # same person
-        if self.person1 == self.person2:
-            return False
-        return True
 
 
 class SecretSanta:
@@ -100,25 +68,22 @@ class SecretSanta:
     )
     console = Console(theme=custom_theme)
 
-    def valid_pair(
+    def is_valid_pair(
         self,
-        person1: Person,
-        person2: Person,
+        gifter: Person,
+        giftee: Person,
     ) -> bool:
         """
-        Determines if `person1` and `person2` are a valid pair.
+        Determines if `gifter` and `giftee` are a valid pair.
         """
         # same last name
-        if person1.last_name == person2.last_name:
+        if gifter.last_name == giftee.last_name:
             return False
         # previous giftee
-        if (
-            person2.first_name in person1.prev_giftee
-            and person2.last_name in person1.prev_giftee
-        ):
+        if gifter.prev_giftee == giftee.full_name:
             return False
         # same person
-        if person1 == person2:
+        if gifter == giftee:
             return False
         return True
 
@@ -129,26 +94,33 @@ class SecretSanta:
         unique_giftee = []
         for pair in pairs:
             gifter, giftee = pair[0], pair[1]
-            if not self.valid_pair(gifter, giftee):
+            if not self.is_valid_pair(gifter, giftee):
                 return False
             if giftee.full_name in unique_giftee:
                 return False
             unique_giftee.append(giftee.full_name)
         return True
 
-    def create_pair(self, gifter: dict, possible_giftees: list[dict]) -> tuple[dict]:
+    def find_valid_pair(
+        self,
+        gifter: Person,
+        possible_giftees: list[Person],
+    ) -> tuple[Person, Person]:
         """
-        Creates a single Secret Santa Pair based on rules determined by `valid_pair`.
+        Finds a single Secret Santa Pair based on rules determined by `valid_pair` and returns it.
         """
         for giftee in possible_giftees:
-            if not self.valid_pair(giftee, gifter):
+            if not self.is_valid_pair(gifter, giftee):
                 continue
             possible_giftees.remove(giftee)
-            pair = (gifter, giftee)
-            return pair
+            return (gifter, giftee)
         return {}
 
-    def create_pairs(self, entries: list[Person], attempt_limit=1_000) -> list[tuple]:
+    def create_pairs(
+        self,
+        entries: list[Person],
+        attempt_limit=1_000,
+    ) -> list[tuple[Person, Person]]:
         """
         Creates pairs from `entries` and checks if they are valid until the a
         valid pair is found or the `attempt_limit` is reached.
@@ -159,7 +131,7 @@ class SecretSanta:
 
             pairs = []
             for gifter in entries:
-                new_pair = self.create_pair(gifter, possible_giftees)
+                new_pair = self.find_valid_pair(gifter, possible_giftees)
                 if new_pair:
                     pairs.append(new_pair)
 
@@ -173,7 +145,7 @@ class SecretSanta:
                 exit()
         return pairs
 
-    def create_html(self, data, write_to_file: bool = False):
+    def create_html(self, data: str, write_to_file: bool = False) -> None:
         """
         Creates an html file with the given `data`.
         Writes to a file if `write_to_file` is True.
@@ -187,7 +159,7 @@ class SecretSanta:
                 file.write(html_content)
         return html_content
 
-    def create_test_email(self):
+    def create_test_email(self) -> None:
         """
         Creates a HTML test file.
         """
@@ -202,7 +174,7 @@ class SecretSanta:
         )
         # TODO Ask to open in browser
 
-    def show_entries_table(self, entries: list[Person]):
+    def show_entries_table(self, entries: list[Person]) -> None:
         """
         Shows Entry Data with a table.
         """
@@ -234,7 +206,7 @@ class SecretSanta:
         self,
         pairs: list[list[Person, Person]],
         test: bool = False,
-    ):
+    ) -> None:
         """
         Sends emails to all entries for Secret Santa.
         """
@@ -274,7 +246,7 @@ class SecretSanta:
 
         print("\nProcess Complete")
 
-    def get_permutations_count(self, entries):
+    def get_permutations_count(self, entries: list[Person]) -> int:
         """
         Gets the total permutations count for `entries`.
         """
@@ -282,7 +254,7 @@ class SecretSanta:
         for gifter in entries:
             valid_pairs = 0
             for giftee in entries:
-                if self.valid_pair(giftee, gifter):
+                if self.is_valid_pair(giftee, gifter):
                     valid_pairs += 1
             combos.append(valid_pairs)
         # find permutations
@@ -291,7 +263,7 @@ class SecretSanta:
             permutations = permutations * n
         return permutations
 
-    def validate_emails(self, entries: list[Person]):
+    def validate_emails(self, entries: list[Person]) -> None:
         """
         Validates emails for `entries`.
         """
@@ -301,20 +273,46 @@ class SecretSanta:
                 input(msg)
                 exit()
 
-    def validate_prev_giftees(self, entries: list[Person]):
+    def validate_prev_giftees(self, entries: list[Person]) -> None:
         """
         Validates each entries last giftee to be sure they are found within `entries`.
         """
         full_names = [entry.full_name for entry in entries]
         for entry in entries:
             if entry.prev_giftee and entry.prev_giftee not in full_names:
-                msg = (
-                    f"Failed to match {entry.prev_giftee} with anyone in entries list."
-                )
+                msg = f"Failed to match {entry.prev_giftee} with anyone."
                 input(msg)
                 exit()
 
-    def create_pairs_and_send(self, entries: list[Person], test=False):
+    def create_test_pairs(self) -> None:
+        """
+        Creates pairs only for testing to confirm pairs are valid.
+        """
+        table = Table(
+            title="Test Pairs",
+            show_lines=True,
+            title_style="bold",
+            style="theme-green",
+        )
+        table.add_column("Gifter Name", justify="left")
+        table.add_column("Gifter's\nLast Giftee", justify="left")
+        table.add_column("Giftee Name", justify="left")
+        table.add_column("Same\nLast Name", justify="center")
+
+        pairs = self.create_pairs(self.entries)
+        for pair in pairs:
+            gifter, giftee = pair
+            row = [
+                gifter.full_name,
+                gifter.prev_giftee,
+                giftee.full_name,
+                str(gifter.last_name == giftee.last_name),
+            ]
+            table.add_row(*row)
+
+        self.console.print(table, new_line_start=True)
+
+    def create_pairs_and_send(self, entries: list[Person], test=False) -> None:
         """
         Creates pairs from `entires` and sends the emails out.
         """
@@ -347,6 +345,7 @@ class SecretSanta:
         choices = [
             ("Send Secret Santa Emails", main_run),
             ("Send Test Emails", test_run),
+            ("Create Test Pairs", self.create_test_pairs),
             ("Create Test HTML File", self.create_test_email),
             ("Show Entries Table", lambda: self.show_entries_table(self.entries)),
             ("Exit", exit),
@@ -354,7 +353,7 @@ class SecretSanta:
         action_picker(choices)
         exit()
 
-    def main(self):
+    def main(self) -> None:
         year = dt.datetime.now().year
         title = f"[theme-green]Secret Santa Pair Picker[/] | [theme-red]{year}[/]"
         self.console.print(title)
@@ -366,6 +365,4 @@ class SecretSanta:
 
 if __name__ == "__main__":
     App = SecretSanta()
-    # App.main()
-
-    App.create_pairs_and_send(App.test_entries, test=True)
+    App.main()
