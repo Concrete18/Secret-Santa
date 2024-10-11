@@ -2,7 +2,6 @@
 from pathlib import Path
 import datetime as dt
 import random, json
-from dataclasses import dataclass
 
 # third-party imports
 from jinja2 import Environment, FileSystemLoader
