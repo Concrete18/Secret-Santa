@@ -191,11 +191,11 @@ class SecretSanta:
 
         for entry in entries:
             row = [
-                entry.first_name,
-                entry.last_name,
-                entry.email,
-                entry.prev_giftee,
-                entry.wishlist,
+                entry.first_name or "[theme-red]First Name is Missing",
+                entry.last_name or "[theme-red]Last Name is Missing",
+                entry.email or "[theme-red]Email is Missing",
+                entry.prev_giftee or "[yellow]Previous Giftee is Missing",
+                entry.wishlist or "[bright_black]No Wishlist",
             ]
             table.add_row(*row)
 

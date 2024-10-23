@@ -50,6 +50,17 @@ class TestIsValidPair:
         )
         assert not self.ss.is_valid_pair(person1, person2)
 
+    def test_same_person(self):
+        person1 = Person(
+            {
+                "first": "John",
+                "last": "Doe",
+                "email": "fake1@gmail.com",
+                "prev_giftee": "Linda German",
+            }
+        )
+        assert not self.ss.is_valid_pair(person1, person1)
+
 
 class TestFindValidPair:
     """
