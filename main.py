@@ -30,6 +30,10 @@ class Person:
             f"wishlist={self.wishlist}, notes={self.notes})"
         )
 
+    def __bool__(self) -> bool:
+        checks = [self.first_name, self.last_name, self.email]
+        return all(checks)
+
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
@@ -86,7 +90,7 @@ class SecretSanta:
             return False
         return True
 
-    def validate_pairs(self, pairs: list[list[Person, Person]]) -> bool:
+    def validate_pairs(self, pairs: list[tuple[Person, Person]]) -> bool:
         """
         Determines if the list of `pairs` are all valid.
         """
@@ -104,7 +108,7 @@ class SecretSanta:
         self,
         gifter: Person,
         possible_giftees: list[Person],
-    ) -> tuple[Person, Person]:
+    ) -> tuple[Person, Person] | None:
         """
         Finds a single Secret Santa Pair based on rules determined by `valid_pair` and returns it.
         """
@@ -113,7 +117,7 @@ class SecretSanta:
                 continue
             possible_giftees.remove(giftee)
             return (gifter, giftee)
-        return {}
+        return None
 
     def create_pairs(
         self,
@@ -144,7 +148,7 @@ class SecretSanta:
                 exit()
         return pairs
 
-    def create_html(self, data: str, write_to_file: bool = False) -> None:
+    def create_html(self, data: dict, write_to_file: bool = False) -> str:
         """
         Creates an html file with the given `data`.
         Writes to a file if `write_to_file` is True.
@@ -203,7 +207,7 @@ class SecretSanta:
 
     def send_secret_santa_emails(
         self,
-        pairs: list[list[Person, Person]],
+        pairs: list[tuple[Person, Person]],
         test: bool = False,
     ) -> None:
         """
@@ -231,7 +235,8 @@ class SecretSanta:
                     "wishlist_link": giftee.wishlist,
                 }
             )
-
+            if not gifter.email:
+                raise Exception(f"Gifter Email is invalid: {gifter.email}")
             try:
                 self.email.send_email(
                     subject=email_subject,
@@ -267,7 +272,9 @@ class SecretSanta:
         Validates emails for `entries`.
         """
         for entry in entries:
-            if not self.email.validate_email(entry.email):
+            if not entry:
+                raise Exception("An entry is invalid")
+            if entry.email and not self.email.validate_email(entry.email):
                 msg = f"{entry.email} for {entry.full_name} is not a valid email."
                 input(msg)
                 exit()
@@ -283,7 +290,7 @@ class SecretSanta:
                 input(msg)
                 exit()
 
-    def create_test_pairs(self) -> None:
+    def show_pairs_table(self, pairs) -> None:
         """
         Creates pairs only for testing to confirm pairs are valid.
         """
@@ -311,6 +318,10 @@ class SecretSanta:
 
         self.console.print(table, new_line_start=True)
 
+    def create_test_pairs(self) -> None:
+        pairs = self.create_pairs(self.entries)
+        self.show_pairs_table(pairs)
+
     def create_pairs_and_send(self, entries: list[Person], test=False) -> None:
         """
         Creates pairs from `entires` and sends the emails out.
@@ -334,7 +345,6 @@ class SecretSanta:
             input("\nCancelled")
             return
 
-        pairs = self.create_pairs(entries)
         self.send_secret_santa_emails(pairs=pairs, test=test)
         input()
 

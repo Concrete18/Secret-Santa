@@ -17,7 +17,7 @@ class Email:
         Verifies if an email is valid using regex.
         """
         regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
-        return re.fullmatch(regex, email)
+        return bool(re.fullmatch(regex, email))
 
     def send_email(
         self,
