@@ -217,7 +217,7 @@ class SecretSanta:
 
         for gifter, giftee in pairs:
 
-            self.console.print(f"\nSending email to [sec]{gifter.full_name}[/]")
+            self.console.print(f"Sending email to [sec]{gifter.full_name}[/]\n")
 
             if test:
                 self.console.print(f"New Giftee [sec]{giftee.full_name}[/]")
@@ -248,7 +248,7 @@ class SecretSanta:
                 msg = f"Failed to send email to [sec]{gifter.full_name}[/]: {e}"
                 self.console.print(msg)
 
-        print("\nProcess Complete")
+        print("\nSecret Santa Emails have been Sent")
 
     def get_permutations_count(self, entries: list[Person]) -> int:
         """
@@ -338,6 +338,10 @@ class SecretSanta:
         print("\nEmails will be sent to the following addresses:")
         for entry in entries:
             print(entry.email)
+
+        print("\nCreating Pairs")
+        pairs = self.create_pairs(entries)
+        print("Pairs were created")
 
         msg = "\nDo you want to notify everyone who their Secret Santa is?\n"
         response = input(msg)
