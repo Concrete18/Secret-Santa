@@ -106,10 +106,14 @@ class TestFindValidPair:
         ]
         entries = [Person(entry) for entry in data]
         random.shuffle(entries)
-        gifter, giftee = self.ss.find_valid_pair(gifter, entries)
-        assert giftee.last_name != "German"
-        assert gifter.prev_giftee != giftee.full_name
-        assert gifter.last_name != giftee.last_name
+        pair = self.ss.find_valid_pair(gifter, entries)
+        if pair:
+            gifter, giftee = pair
+            assert giftee.last_name != "German"
+            assert gifter.prev_giftee != giftee.full_name
+            assert gifter.last_name != giftee.last_name
+        else:
+            assert False
 
 
 class TestValidatePairs:

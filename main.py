@@ -1,7 +1,7 @@
 # standard library
 from pathlib import Path
 import datetime as dt
-import random, json
+import random, json, sys
 
 # third-party imports
 from jinja2 import Environment, FileSystemLoader
@@ -10,37 +10,13 @@ from rich.table import Table
 from rich.theme import Theme
 
 # local imports
+from utils.classes import Person
 from utils.email import Email
 from utils.action_picker import action_picker
 
 
-class Person:
-    def __init__(self, data: dict) -> None:
-        self.first_name = data.get("first", None)
-        self.last_name = data.get("last", None)
-        self.email = data.get("email", None)
-        self.prev_giftee = data.get("prev_giftee", None)
-        self.wishlist = data.get("wishlist", None)
-        self.notes = data.get("wishlist", None)
-
-    def __repr__(self) -> str:
-        return (
-            f"Person(\nfirst_name={self.first_name}, last_name={self.last_name}, "
-            f"email={self.email}, prev_giftee={self.prev_giftee}, "
-            f"wishlist={self.wishlist}, notes={self.notes})"
-        )
-
-    def __bool__(self) -> bool:
-        checks = [self.first_name, self.last_name, self.email]
-        return all(checks)
-
-    @property
-    def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
-
-
 class SecretSanta:
-    config = Path("config.json")
+    config = Path("data/config.json")
     with open(config) as file:
         data = json.load(file)
         gmail = data.get("gmail", False)
@@ -112,12 +88,11 @@ class SecretSanta:
         """
         Finds a single Secret Santa Pair based on rules determined by `valid_pair` and returns it.
         """
-        for giftee in possible_giftees:
-            if not self.is_valid_pair(gifter, giftee):
-                continue
-            possible_giftees.remove(giftee)
-            return (gifter, giftee)
-        return None
+        valid = [g for g in possible_giftees if self.is_valid_pair(gifter, g)]
+        if not valid:
+            return None
+        giftee = random.choice(valid)
+        return gifter, giftee
 
     def create_pairs(
         self,
@@ -129,13 +104,15 @@ class SecretSanta:
         valid pair is found or the `attempt_limit` is reached.
         """
         while True:
-            possible_giftees = entries.copy()
-            random.shuffle(possible_giftees)
-
+            available = entries.copy()  # fresh pool of receivers each attempt
+            random.shuffle(available)
+            gifters = entries.copy()  # separate list to loop over
+            random.shuffle(gifters)
             pairs = []
-            for gifter in entries:
-                new_pair = self.find_valid_pair(gifter, possible_giftees)
+            for gifter in gifters:
+                new_pair = self.find_valid_pair(gifter, available)
                 if new_pair:
+                    available.remove(new_pair[1])
                     pairs.append(new_pair)
 
             if self.validate_pairs(pairs) and len(pairs) == len(entries):
@@ -148,17 +125,37 @@ class SecretSanta:
                 exit()
         return pairs
 
+    def save_pairs(self, pairs: list[tuple[Person, Person]]) -> None:
+        """
+        Saves pairs into a json file.
+        """
+        file = Path("data/previous_pairs.json")
+        if not file.exists():
+            file.touch()
+        # creates pairs list for json
+        pairs_list = []
+        for gifter, giftee in pairs:
+            entry = f"{gifter.first_name} {gifter.last_name} -> {giftee.first_name} {giftee.last_name}"
+            pairs_list.append(entry)
+        # gets date as a str
+        cur_date = dt.datetime.now()
+        date_str = cur_date.strftime("%m/%d/%Y")
+        # saves data into json
+        data = {"date": date_str, "pairs": pairs_list}
+        with open(file, mode="w") as f:
+            json.dump(data, f)
+
     def create_html(self, data: dict, write_to_file: bool = False) -> str:
         """
         Creates an html file with the given `data`.
         Writes to a file if `write_to_file` is True.
         """
         env = Environment(loader=FileSystemLoader("."))
-        template = env.get_template("christmas_card_template.html")
+        template = env.get_template("data/christmas_card_template.html")
         html_content = template.render(data)
         # writes to a file for local testing
         if write_to_file:
-            with open("test.html", "w") as file:
+            with open("data/test.html", "w") as file:
                 file.write(html_content)
         return html_content
 
@@ -247,6 +244,8 @@ class SecretSanta:
             except Exception as e:
                 msg = f"Failed to send email to [sec]{gifter.full_name}[/]: {e}"
                 self.console.print(msg)
+        if not test:
+            self.save_pairs(pairs)
 
         print("\nSecret Santa Emails have been Sent")
 
@@ -326,9 +325,6 @@ class SecretSanta:
         """
         Creates pairs from `entires` and sends the emails out.
         """
-        if test:
-            print("\nStarting Test")
-
         self.validate_emails(entries)
         self.validate_prev_giftees(entries)
 
@@ -373,7 +369,13 @@ class SecretSanta:
 
         self.show_entries_table(self.entries)
 
-        self.menu_actions()
+        if len(sys.argv) > 1 and sys.argv[1] == "test":
+            print("\nRunning Tests")
+            # self.create_test_email()
+            self.create_test_pairs()
+            # self.create_pairs_and_send(self.test_entries, test=True)
+        else:
+            self.menu_actions()
 
 
 if __name__ == "__main__":
